@@ -12,6 +12,6 @@ public class PlaceCategoty
     public Guid Id { get; init; }
     public string Name { get; init; }
     public string Description  { get; init; }
-    public DateTime CreatedOn { get; init; } 
-    
+    public DateTime CreatedOn { get; init; }
+    public List<Place> Places { get; init; } = []; 
 }

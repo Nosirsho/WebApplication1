@@ -1,7 +1,9 @@
 ﻿using System.Linq.Expressions;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WebApplication1.Contracts;
+using WebApplication1.Contracts.PlaceCategory;
 using WebApplication1.DataAccess;
 using WebApplication1.Models;
 
@@ -12,10 +14,12 @@ namespace WebApplication1.Controllers;
 public class PlaceCategoryController : ControllerBase
 {
     private readonly CafeDbContext _dbContext;
+    private IValidator<CreatePlaceCategoryRequest> _validator;
 
-    public PlaceCategoryController(CafeDbContext dbContext)
+    public PlaceCategoryController(CafeDbContext dbContext, IValidator<CreatePlaceCategoryRequest> validator)
     {
         _dbContext = dbContext;
+        _validator = validator;
     }
     [HttpGet]
     public async Task<ActionResult> Get([FromQuery]GetPlaceCategoryRequest request, CancellationToken ct)
@@ -31,8 +35,8 @@ public class PlaceCategoryController : ControllerBase
             "date" => placeCategory => placeCategory.CreatedOn,
             _ => placeCategory => placeCategory.Id
         };
-        
-        pcQuery = request?.SortItem == "desc" 
+
+        pcQuery = request?.SortOrder == "desc" 
             ? pcQuery.OrderByDescending(selectorKey) 
             : pcQuery.OrderBy(selectorKey);
 
@@ -47,6 +51,13 @@ public class PlaceCategoryController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreatePlaceCategoryRequest request, CancellationToken ct)
     {
+        ValidationResult result = await _validator.ValidateAsync(request);
+
+        if (!result.IsValid)
+        {
+            return BadRequest(result.Errors);
+        }
+
         var placeCategory = new PlaceCategoty(request.Name, request.Description);
         await _dbContext.PlaceCategoties.AddAsync(placeCategory,ct);
         await _dbContext.SaveChangesAsync(ct);
